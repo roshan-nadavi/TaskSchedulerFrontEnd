@@ -1,58 +1,211 @@
+<style>
+  /*…write your styles here*/
+  .container{
+    background-color: orange;
+  }
+  .title{
+    color: black;
+  }
+  .table{
+    align-items: center;
+    align-self: center;
+    align-content: center;
+    border-radius: 5cm;
+    padding: 0 500px;
+  }
+  .deleteButton{
+    color: red;
+    display: inline-block;
+    border-radius: 12px;
+  }
+  .finishButton{
+    color: darkgreen;
+    display: inline-block;
+    border-radius: 2px;
+  }
+  .clicking{
+    color: black;
+    display: inline-block;
+    border-radius: 12px;
+  }
+  .addButton{
+    color: green;
+    display: inline-block;
+    border-radius: 12px;
+  }
+  .editButton{
+    color: blue;
+    display: inline-block;
+    border-radius: 12px;
+  }
+  .add_task {
+    padding-top: 0.25cm;
+    
+  }
+  .edit_task {
+    padding-top: 0.25cm;
+    padding-bottom: 0.25cm;
+    
+  }
+  td, tr, th {
+    border: 1px solid;
+  }
+</style>
 <template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
-  </div>
+    
+
+    <div class="container">
+      <h1 class="title">Task Scheduler</h1> 
+      <button class="clicking" @click="routerPush">Click to view completed Tasks</button>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Task Id</th>
+                    <th>Task Description</th>
+                    <th>Due Date</th>
+                    <th>Urgency</th>
+                    <th>Click to Delete</th>
+                    <th>Finished?</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="sing in tasks" :key="sing.id">
+                    <td>{{sing.id}} </td>
+                    <td>{{sing.task}}</td>
+                    <td>{{sing.dueDate}}</td>
+                    <td>{{sing.urgency}}</td>
+                    <td><button class="deleteButton" @click="remove(sing.id)">Delete Task</button></td>
+                    <td><button class="finishButton" @click="finish(sing.id, sing.task, sing.urgency)">Finished</button></td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="add_task">
+          <h3 class="title">Add a task</h3> 
+        <form v-on:submit.prevent="submitForm">
+          <input type="text" id="taskName" v-model="taskName" placeholder="Task Description">
+          <input type="date" id="taskDate" v-model="taskDate">
+          <select v-model="taskUrgency" required>
+            <option value="" disabled selected>Select urgency level</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+                <button class = "addButton" type="submit" @click="addTask">Add Task</button>
+        </form>
+    </div>
+
+      <div class = edit_task>
+        <h3 class="title">Edit a task</h3> 
+        <form v-on:submit.prevent="submitForm">
+        <input type="text" v-model="taskNumberEdit" placeholder="Task ID">
+        <input type="text" v-model="taskNameEdit" placeholder="Task Description">
+        <input type="date" v-model="dueDateEdit">
+        <select id="editurgency" v-model="urgencyEdit">
+          <option value="" disabled selected>Select urgency level</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+        <button class="editButton" @click="editTask">Edit Task</button>
+      </form>
+      </div>
+    </div>    
+  
+
 </template>
 
 <script>
+import axios from 'axios';
 export default {
   name: 'HelloWorld',
-  props: {
-    msg: String
+  data () {
+    return {
+      tasks: [],
+      taskName: "",
+      taskDate: "",
+      taskUrgency:"",
+      taskNameEdit: "",
+      dueDateEdit: "",
+      urgencyEdit:"",
+      taskNumberEdit:null
+    }
+  },
+  mounted () { 
+    this.get_Tasks();
+  },
+  methods: {
+    get_Tasks() {
+        axios({
+            method:'get',
+            url: 'http://127.0.0.1:8000/drinks/',
+           
+        }).then(response => this.tasks = response.data);
+    },
+    routerPush() {
+      this.$router.push({ path: 'completed' })
+    },
+    async addTask() {
+      console.log(this.taskName);
+      console.log(this.taskDate);
+      console.log(this.taskUrgency);
+      const article = {
+          task: this.taskName,
+          dueDate:  this.taskDate,
+          urgency: this.taskUrgency,
+        }
+      await axios.post('http://127.0.0.1:8000/drinks/', article);
+      await axios.get('http://127.0.0.1:8000/drinks/').then(response => this.tasks = response.data);
+      this.taskName = null;
+      this.taskDate = null;
+      this.taskUrgency = "";
+ 
+      //this.get_Tasks();
+    },
+    async editTask() {
+      console.log(this.taskName);
+      console.log(this.taskDate);
+      console.log(this.taskUrgency);
+      const article = {
+          task: this.taskNameEdit,
+          dueDate:  this.dueDateEdit,
+          urgency: this.urgencyEdit,
+        }
+      console.log(article)
+      await axios.put('http://127.0.0.1:8000/drinks/' + this.taskNumberEdit, article);
+      await axios.get('http://127.0.0.1:8000/drinks/').then(response => this.tasks = response.data);
+
+      this.taskNumberEdit = null;
+      this.taskNameEdit = null;
+      this.dueDateEdit = null;
+      this.urgencyEdit = "";
+      //this.get_Tasks();
+    },
+    async remove(num) {
+      console.log(num);
+      await axios.delete('http://127.0.0.1:8000/drinks/' + num);
+      await axios.get('http://127.0.0.1:8000/drinks/').then(response => this.tasks = response.data);
+    },
+    async finish(num, desc, urg) {
+      console.log(num);
+      const article = {
+          task: desc,
+          urgency: urg,
+        }
+      await axios.delete('http://127.0.0.1:8000/drinks/' + num);
+      await axios.post('http://127.0.0.1:8000/completedtasks/', article);
+      await axios.get('http://127.0.0.1:8000/drinks/').then(response => this.tasks = response.data);
+    }
+
   }
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-h3 {
-  margin: 40px 0 0;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
-}
-</style>
+
+
+
+
+
+
+
+
+
